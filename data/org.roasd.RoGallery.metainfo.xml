@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.roasd.RoGallery</id>
+  <name>Ro-Gallery</name>
+  <summary>Browse and organize your local photo library</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>Ro-Gallery is a native Qt photo library and viewer for Ro-ASD.
+    Browse photos by date, search filenames, mark favorites and view images
+    with zoom and pan. Photos stay on your computer.</p>
+  </description>
+  <launchable type="desktop-id">ro-gallery.desktop</launchable>
+  <url type="homepage">https://github.com/Project-Ro-ASD/Ro-Gallery</url>
+  <url type="bugtracker">https://github.com/Project-Ro-ASD/Ro-Gallery/issues</url>
+  <developer id="org.roasd">
+    <name>Project Ro-ASD</name>
+  </developer>
+  <provides><binary>ro-gallery</binary></provides>
+  <content_rating type="oars-1.1"/>
+</component>

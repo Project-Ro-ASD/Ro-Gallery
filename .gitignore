@@ -1,0 +1,27 @@
+# Local design references and generated screenshots (keep application assets).
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/references/
+/local/
+/samples/
+/tools/make_samples.py
+
+# Build, packaging and editor output.
+/build*/
+/cmake-build-*/
+/release-rpms/
+/rpmbuild/
+*.rpm
+*.tar.gz
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+*.user
+.env
+.env.*
+.codex/
+.agents/
+.aws/

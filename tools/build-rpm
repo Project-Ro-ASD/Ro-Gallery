@@ -1,21 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+cd "$(dirname "$0")/.."
 VERSION="${1:-}"
 ARCH="${2:-}"
 OUTDIR="${3:-}"
-
-if [[ -z "${VERSION}" || -z "${ARCH}" || -z "${OUTDIR}" ]]; then
-  echo "usage: tools/build-rpm <version> <arch> <output-dir>" >&2
-  exit 2
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: tools/build-rpm <X.Y.Z> <x86_64|aarch64> <output-dir>" >&2; exit 2; }
+[[ "$ARCH" == x86_64 || "$ARCH" == aarch64 ]] || exit 2
+[[ -n "$OUTDIR" ]] || exit 2
+[[ "$(rpm --eval '%{?fedora}')" == 44 ]] || { echo "Fedora 44 is required" >&2; exit 1; }
+[[ "$(uname -m)" == "$ARCH" ]] || { echo "Build on the requested native architecture" >&2; exit 1; }
+# CI containers start with only rpm and python3. Local builds never install packages.
+if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    dnf install -y rpm-build gcc-c++ cmake ninja-build qt6-qtbase-devel qt6-qtimageformats python3 desktop-file-utils
 fi
-
-if [[ "${GITHUB_REPOSITORY:-}" == "Project-Ro-ASD/ro-app-template" ]]; then
-  echo "Template repository does not build an RPM payload." >&2
-  echo "Copied application repositories must replace tools/build-rpm." >&2
-  exit 1
-fi
-
-echo "RPM build hook is not configured for this application." >&2
-echo "Implement tools/build-rpm so it writes the exact Fedora 44 RPM/SRPM set to: ${OUTDIR}" >&2
-exit 1
+mkdir -p "$OUTDIR"
+OUTDIR="$(realpath "$OUTDIR")"
+[[ -z "$(find "$OUTDIR" -mindepth 1 -maxdepth 1 -print -quit)" ]] || { echo "Output directory must be empty" >&2; exit 1; }
+export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-2}"
+WORK="$(mktemp -d /tmp/ro-gallery-rpm.XXXXXX)"
+trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$WORK"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,tmp}
+# Explicit source list: personal references, local helpers and build outputs never enter the SRPM.
+tar --sort=name --mtime='UTC 2026-01-01' --owner=0 --group=0 --numeric-owner \
+    --transform="s|^|ro-gallery-$VERSION/|" \
+    -czf "$WORK/SOURCES/ro-gallery-$VERSION.tar.gz" \
+    CMakeLists.txt LICENSE README.md src assets data tests ro-gallery.desktop packaging/ro-gallery.spec
+sed "s/^Version:.*/Version:        $VERSION/" packaging/ro-gallery.spec > "$WORK/SPECS/ro-gallery.spec"
+rpmbuild -ba --define "_topdir $WORK" --define "_tmppath $WORK/tmp" --define 'dist .fc44' \
+    "$WORK/SPECS/ro-gallery.spec"
+# debug subpackages are disabled: only the declared package and its SRPM are exported.
+mapfile -t PACKAGES < <(find "$WORK/RPMS" "$WORK/SRPMS" -type f -name '*.rpm' | sort)
+[[ "${#PACKAGES[@]}" == 2 ]] || { echo "Expected one binary RPM and one SRPM" >&2; exit 1; }
+for package in "${PACKAGES[@]}"; do
+    [[ "$(rpm -qp --qf '%{NAME} %{VERSION} %{RELEASE}' "$package")" == "ro-gallery $VERSION 1.fc44" ]]
+    cp "$package" "$OUTDIR/"
+done

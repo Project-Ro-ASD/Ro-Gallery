@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-if [[ "${GITHUB_REPOSITORY:-}" == "Project-Ro-ASD/ro-app-template" ]]; then
-  echo "Template repository self-check: no project-specific build is required."
-  exit 0
+cd "$(dirname "$0")/.."
+if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    dnf install -y gcc-c++ cmake ninja-build qt6-qtbase-devel qt6-qtimageformats python3 desktop-file-utils appstream
 fi
-
-echo "Project-specific CI is not configured yet." >&2
-echo "Replace tools/project-ci with the application's real build/test/lint commands." >&2
-exit 1
+python3 tools/validate-roasd-app.py
+bash -n run.sh install.sh tools/project-ci tools/build-rpm
+desktop-file-validate ro-gallery.desktop
+appstreamcli validate --no-net data/org.roasd.RoGallery.metainfo.xml
+cmake -S . -B build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build-ci --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-2}"
+ctest --test-dir build-ci --output-on-failure
+STAGE="$(mktemp -d /tmp/ro-gallery-install.XXXXXX)"
+trap 'rm -rf "$STAGE"' EXIT
+DESTDIR="$STAGE" cmake --install build-ci --prefix /usr
+test -x "$STAGE/usr/bin/ro-gallery"
+desktop-file-validate "$STAGE/usr/share/applications/ro-gallery.desktop"

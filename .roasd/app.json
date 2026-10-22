@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "component": "__ROASD_COMPONENT__",
+  "component": "ro-gallery",
   "package_names": [
-    "__ROASD_PACKAGE__"
+    "ro-gallery"
   ],
   "fedora_release": 44,
   "architectures": [

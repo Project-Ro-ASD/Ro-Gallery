@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Ro-Gallery
+Name[tr]=Ro-Gallery
+Comment=Photo library and viewer
+Comment[tr]=Fotoğraf kitaplığı ve görüntüleyici
+Exec=ro-gallery
+Icon=ro-gallery
+Terminal=false
+Categories=Graphics;Photography;Qt;
+StartupNotify=true
+StartupWMClass=ro-gallery
